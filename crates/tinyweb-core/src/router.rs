@@ -1,23 +1,37 @@
+use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::{
     body::Body,
     handler::{erase_handler, ErasedHandler, Handler},
+    service::Service,
 };
 
-pub struct RouteId(usize);
+struct RouteId(usize);
 
-pub struct Router {
+struct RouterInner {
     routers: std::collections::HashMap<http::Method, matchit::Router<RouteId>>,
     routes: Vec<Arc<dyn ErasedHandler>>,
+}
+
+#[derive(Clone)]
+pub struct Router {
+    inner: Arc<RouterInner>,
 }
 
 impl Router {
     pub fn new() -> Self {
         Self {
-            routers: std::collections::HashMap::new(),
-            routes: Vec::new(),
+            inner: Arc::new(RouterInner {
+                routers: std::collections::HashMap::new(),
+                routes: Vec::new(),
+            }),
         }
+    }
+
+    fn inner_mut(&mut self) -> &mut RouterInner {
+        Arc::get_mut(&mut self.inner)
+            .expect("Router is shared; cannot modify after cloning")
     }
 
     pub fn route<H: Handler<T>, T: 'static>(
@@ -35,11 +49,12 @@ impl Router {
         path: &str,
         handler: Arc<dyn ErasedHandler>,
     ) -> Self {
-        let id = RouteId(self.routes.len());
+        let inner = self.inner_mut();
+        let id = RouteId(inner.routes.len());
 
-        self.routes.push(handler);
+        inner.routes.push(handler);
 
-        let router = self
+        let router = inner
             .routers
             .entry(method)
             .or_insert_with(matchit::Router::new);
@@ -117,8 +132,10 @@ impl Router {
         }
         self
     }
+}
 
-    pub async fn call(&self, req: http::Request<h2::RecvStream>) -> http::Response<Body> {
+impl RouterInner {
+    async fn dispatch(&self, req: http::Request<h2::RecvStream>) -> http::Response<Body> {
         let method = req.method();
         let path = req.uri().path();
 
@@ -134,10 +151,19 @@ impl Router {
             return route.call_erased(req).await;
         }
 
-        // If no route matches, return a 404 response
         http::Response::builder()
             .status(404)
             .body(Body::Empty)
             .expect("simple 404 should not fail")
+    }
+}
+
+impl Service for Router {
+    fn call(
+        &self,
+        req: http::Request<h2::RecvStream>,
+    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send + 'static>> {
+        let inner = Arc::clone(&self.inner);
+        Box::pin(async move { inner.dispatch(req).await })
     }
 }

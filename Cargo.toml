@@ -1,13 +1,3 @@
-[package]
-name = "tinyweb"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-bytes = "1.11.1"
-futures = "0.3.32"
-h2 = { version = "0.4.13", features = ["stream"] }
-http = "1.4.0"
-matchit = "0.9.1"
-serde = "1.0.228"
-tokio = { version = "1.50.0", features = ["rt", "time", "io-util"] }
+[workspace]
+members = ["crates/*"]
+resolver = "3"
