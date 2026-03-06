@@ -1,4 +1,8 @@
 [workspace]
 members = ["crates/*"]
-default-members = ["crates/tinyweb-core", "crates/tinyweb-tokio", "crates/tinyweb"]
+default-members = [
+  "crates/tinyweb-core",
+  "crates/tinyweb-tokio",
+  "crates/tinyweb",
+]
 resolver = "3"
