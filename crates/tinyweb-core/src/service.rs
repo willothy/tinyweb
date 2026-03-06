@@ -4,8 +4,5 @@ use crate::{
 };
 
 pub trait Service: Clone + MaybeSend + MaybeSync + 'static {
-    fn call(
-        &self,
-        req: http::Request<h2::RecvStream>,
-    ) -> BoxFuture<'static, http::Response<Body>>;
+    fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>>;
 }

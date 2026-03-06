@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     body::Body,
-    handler::{erase_handler, ErasedHandler, Handler},
+    handler::{ErasedHandler, Handler, erase_handler},
     maybe_send::BoxFuture,
     service::Service,
 };
@@ -30,8 +30,7 @@ impl Router {
     }
 
     fn inner_mut(&mut self) -> &mut RouterInner {
-        Arc::get_mut(&mut self.inner)
-            .expect("Router is shared; cannot modify after cloning")
+        Arc::get_mut(&mut self.inner).expect("Router is shared; cannot modify after cloning")
     }
 
     pub fn route<H: Handler<T>, T: 'static>(
@@ -159,10 +158,7 @@ impl RouterInner {
 }
 
 impl Service for Router {
-    fn call(
-        &self,
-        req: http::Request<h2::RecvStream>,
-    ) -> BoxFuture<'static, http::Response<Body>> {
+    fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>> {
         let inner = Arc::clone(&self.inner);
         Box::pin(async move { inner.dispatch(req).await })
     }

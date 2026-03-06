@@ -9,10 +9,7 @@ impl tinyweb_core::incoming::Incoming for TcpIncoming {
 
     fn accept(
         &mut self,
-    ) -> tinyweb_core::maybe_send::BoxFuture<
-        '_,
-        Result<(Self::Io, Self::Addr), Self::Error>,
-    > {
+    ) -> tinyweb_core::maybe_send::BoxFuture<'_, Result<(Self::Io, Self::Addr), Self::Error>> {
         Box::pin(async move {
             let (stream, addr) = self.0.accept().await?;
             Ok((TokioIoCompat::new(stream), addr))

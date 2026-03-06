@@ -1,4 +1,4 @@
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 
 pin_project_lite::pin_project! {
     pub(crate) struct TokioIo<T> {

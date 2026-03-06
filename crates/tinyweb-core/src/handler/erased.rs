@@ -1,10 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    body::Body,
-    handler::Handler,
-    maybe_send::BoxFuture,
-};
+use crate::{body::Body, handler::Handler, maybe_send::BoxFuture};
 
 #[cfg(feature = "send")]
 pub(crate) trait ErasedHandler: Send + Sync + 'static {

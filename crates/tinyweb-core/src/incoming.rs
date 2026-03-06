@@ -8,7 +8,5 @@ pub trait Incoming: MaybeSend + 'static {
     type Addr;
     type Error;
 
-    fn accept(
-        &mut self,
-    ) -> BoxFuture<'_, Result<(Self::Io, Self::Addr), Self::Error>>;
+    fn accept(&mut self) -> BoxFuture<'_, Result<(Self::Io, Self::Addr), Self::Error>>;
 }

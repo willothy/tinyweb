@@ -6,13 +6,10 @@ use crate::{
     response::IntoResponse,
 };
 
-pub(crate) use erased::{erase_handler, ErasedHandler};
+pub(crate) use erased::{ErasedHandler, erase_handler};
 
 pub trait Handler<T>: MaybeSend + MaybeSync + 'static {
-    fn call(
-        &self,
-        req: http::Request<h2::RecvStream>,
-    ) -> BoxFuture<'static, http::Response<Body>>;
+    fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>>;
 }
 
 impl<F, Fut, Res> Handler<()> for F
