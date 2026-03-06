@@ -1,10 +1,11 @@
-use core::pin::Pin;
+use crate::{
+    body::Body,
+    maybe_send::{BoxFuture, MaybeSend, MaybeSync},
+};
 
-use crate::body::Body;
-
-pub trait Service: Clone + Send + Sync + 'static {
+pub trait Service: Clone + MaybeSend + MaybeSync + 'static {
     fn call(
         &self,
         req: http::Request<h2::RecvStream>,
-    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send + 'static>>;
+    ) -> BoxFuture<'static, http::Response<Body>>;
 }

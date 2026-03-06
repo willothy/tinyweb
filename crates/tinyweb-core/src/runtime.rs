@@ -1,8 +1,5 @@
-use core::pin::Pin;
+use crate::maybe_send::{BoxFuture, MaybeSend, MaybeSync};
 
-pub trait Runtime: Clone + Send + Sync + 'static {
-    fn spawn(
-        &self,
-        fut: Pin<Box<dyn Future<Output = ()> + Send + 'static>>,
-    );
+pub trait Runtime: Clone + MaybeSend + MaybeSync + 'static {
+    fn spawn(&self, fut: BoxFuture<'static, ()>);
 }

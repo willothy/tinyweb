@@ -1,49 +1,48 @@
 mod erased;
 
-use std::pin::Pin;
-
-use crate::{body::Body, response::IntoResponse};
+use crate::{
+    body::Body,
+    maybe_send::{BoxFuture, MaybeSend, MaybeSync},
+    response::IntoResponse,
+};
 
 pub(crate) use erased::{erase_handler, ErasedHandler};
 
-pub trait Handler<T>: Send + Sync + 'static {
+pub trait Handler<T>: MaybeSend + MaybeSync + 'static {
     fn call(
         &self,
         req: http::Request<h2::RecvStream>,
-    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send + 'static>>;
+    ) -> BoxFuture<'static, http::Response<Body>>;
 }
 
 impl<F, Fut, Res> Handler<()> for F
 where
-    F: Fn() -> Fut + Clone + Send + Sync + 'static,
-    Fut: Future<Output = Res> + Send + 'static,
+    F: Fn() -> Fut + Clone + MaybeSend + MaybeSync + 'static,
+    Fut: Future<Output = Res> + MaybeSend + 'static,
     Res: IntoResponse + 'static,
 {
     fn call(
         &self,
         _req: http::Request<h2::RecvStream>,
-    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send + 'static>> {
+    ) -> BoxFuture<'static, http::Response<Body>> {
         let f = self.clone();
         Box::pin(async move { f().await.into_response() })
     }
 }
 
 macro_rules! impl_handler {
-    // 1-arg handler: single arg is extracted from the full request
     (($last_ty:ident, $last_var:ident)) => {
         impl<HandlerFn, Fut, Res, $last_ty> $crate::handler::Handler<($last_ty,)> for HandlerFn
         where
-            HandlerFn: Fn($last_ty) -> Fut + Clone + Send + Sync + 'static,
-            Fut: core::future::Future<Output = Res> + Send + 'static,
+            HandlerFn: Fn($last_ty) -> Fut + Clone + $crate::maybe_send::MaybeSend + $crate::maybe_send::MaybeSync + 'static,
+            Fut: core::future::Future<Output = Res> + $crate::maybe_send::MaybeSend + 'static,
             Res: $crate::response::IntoResponse + 'static,
-            $last_ty: $crate::extract::FromRequest + Send + 'static,
+            $last_ty: $crate::extract::FromRequest + $crate::maybe_send::MaybeSend + 'static,
         {
             fn call(
                 &self,
                 req: http::Request<h2::RecvStream>,
-            ) -> core::pin::Pin<
-                Box<dyn core::future::Future<Output = http::Response<$crate::body::Body>> + Send + 'static>
-            > {
+            ) -> $crate::maybe_send::BoxFuture<'static, http::Response<$crate::body::Body>> {
                 let f = self.clone();
 
                 Box::pin(async move {
@@ -60,22 +59,19 @@ macro_rules! impl_handler {
         }
     };
 
-    // N-arg handler: all but last are parts extractors, last is full request extractor
     ($(($part_ty:ident, $part_var:ident)),+ ; ($last_ty:ident, $last_var:ident)) => {
         impl<HandlerFn, Fut, Res, $($part_ty,)+ $last_ty> $crate::handler::Handler<($($part_ty,)+ $last_ty,)> for HandlerFn
         where
-            HandlerFn: Fn($($part_ty,)+ $last_ty) -> Fut + Clone + Send + Sync + 'static,
-            Fut: core::future::Future<Output = Res> + Send + 'static,
+            HandlerFn: Fn($($part_ty,)+ $last_ty) -> Fut + Clone + $crate::maybe_send::MaybeSend + $crate::maybe_send::MaybeSync + 'static,
+            Fut: core::future::Future<Output = Res> + $crate::maybe_send::MaybeSend + 'static,
             Res: $crate::response::IntoResponse + 'static,
-            $($part_ty: $crate::extract::FromRequestParts + Send + 'static,)+
-            $last_ty: $crate::extract::FromRequest + Send + 'static,
+            $($part_ty: $crate::extract::FromRequestParts + $crate::maybe_send::MaybeSend + 'static,)+
+            $last_ty: $crate::extract::FromRequest + $crate::maybe_send::MaybeSend + 'static,
         {
             fn call(
                 &self,
                 req: http::Request<h2::RecvStream>,
-            ) -> core::pin::Pin<
-                Box<dyn core::future::Future<Output = http::Response<$crate::body::Body>> + Send + 'static>
-            > {
+            ) -> $crate::maybe_send::BoxFuture<'static, http::Response<$crate::body::Body>> {
                 let f = self.clone();
 
                 Box::pin(async move {

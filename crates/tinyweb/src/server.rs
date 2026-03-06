@@ -1,11 +1,14 @@
-use crate::{
+use tinyweb_core::{
     body::Body,
     error::{ServeConnectionError, ServeError},
     incoming::Incoming,
-    io::{Io, TokioIo},
+    io::Io,
+    maybe_send::MaybeSend,
     runtime::Runtime,
     service::Service,
 };
+
+use crate::io::TokioIo;
 
 pub async fn serve_connection<IO, S, R>(
     io: IO,
@@ -43,7 +46,7 @@ where
     I: Incoming,
     S: Service,
     R: Runtime,
-    I::Error: Send + 'static,
+    I::Error: MaybeSend + 'static,
 {
     loop {
         let (io, _addr) = incoming.accept().await.map_err(ServeError::Accept)?;
@@ -79,8 +82,7 @@ async fn write_response(
         Body::Stream(mut stream) => {
             let mut send = respond.send_response(head, false)?;
             loop {
-                let item =
-                    core::future::poll_fn(|cx| stream.as_mut().poll_next(cx)).await;
+                let item = core::future::poll_fn(|cx| stream.as_mut().poll_next(cx)).await;
                 match item {
                     Some(Ok(chunk)) => {
                         if !chunk.is_empty() {

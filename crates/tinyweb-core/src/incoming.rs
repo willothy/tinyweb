@@ -1,15 +1,14 @@
-use core::pin::Pin;
+use crate::{
+    io::Io,
+    maybe_send::{BoxFuture, MaybeSend},
+};
 
-use crate::io::Io;
-
-pub trait Incoming: Send + 'static {
+pub trait Incoming: MaybeSend + 'static {
     type Io: Io;
     type Addr;
     type Error;
 
     fn accept(
         &mut self,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<(Self::Io, Self::Addr), Self::Error>> + Send + '_>,
-    >;
+    ) -> BoxFuture<'_, Result<(Self::Io, Self::Addr), Self::Error>>;
 }

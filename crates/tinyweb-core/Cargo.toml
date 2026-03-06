@@ -3,6 +3,9 @@ name = "tinyweb-core"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+send = []
+
 [dependencies]
 bytes = "1"
 futures-core = "0.3"
@@ -10,5 +13,3 @@ futures-io = "0.3"
 h2 = { version = "0.4", features = ["stream"] }
 http = "1"
 matchit = "0.9"
-pin-project-lite = "0.2"
-tokio = { version = "1", features = ["io-util"] }

@@ -1,19 +1,9 @@
-use core::pin::Pin;
-
-use crate::error::BodyError;
+use crate::{error::BodyError, maybe_send::BoxStream};
 
 pub enum Body {
     Empty,
     Data(bytes::Bytes),
-    Stream(
-        Pin<
-            Box<
-                dyn futures_core::Stream<Item = Result<bytes::Bytes, BodyError>>
-                    + Send
-                    + 'static,
-            >,
-        >,
-    ),
+    Stream(BoxStream<Result<bytes::Bytes, BodyError>>),
 }
 
 impl core::fmt::Debug for Body {

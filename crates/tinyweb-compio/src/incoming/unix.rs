@@ -1,10 +1,10 @@
-use crate::io_compat::TokioIoCompat;
+use compio::io::compat::AsyncStream;
 
-pub struct UnixIncoming(pub tokio::net::UnixListener);
+pub struct UnixIncoming(pub compio::net::UnixListener);
 
 impl tinyweb_core::incoming::Incoming for UnixIncoming {
-    type Io = TokioIoCompat<tokio::net::UnixStream>;
-    type Addr = tokio::net::unix::SocketAddr;
+    type Io = AsyncStream<compio::net::UnixStream>;
+    type Addr = socket2::SockAddr;
     type Error = std::io::Error;
 
     fn accept(
@@ -15,7 +15,7 @@ impl tinyweb_core::incoming::Incoming for UnixIncoming {
     > {
         Box::pin(async move {
             let (stream, addr) = self.0.accept().await?;
-            Ok((TokioIoCompat::new(stream), addr))
+            Ok((AsyncStream::new(stream), addr))
         })
     }
 }

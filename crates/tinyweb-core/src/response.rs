@@ -1,6 +1,6 @@
-use crate::body::Body;
+use crate::{body::Body, maybe_send::MaybeSend};
 
-pub trait IntoResponse: Send + 'static {
+pub trait IntoResponse: MaybeSend + 'static {
     fn into_response(self) -> http::Response<Body>;
 }
 

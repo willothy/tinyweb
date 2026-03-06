@@ -1,12 +1,25 @@
-use std::{pin::Pin, sync::Arc};
+use std::sync::Arc;
 
-use crate::{body::Body, handler::Handler};
+use crate::{
+    body::Body,
+    handler::Handler,
+    maybe_send::BoxFuture,
+};
 
+#[cfg(feature = "send")]
 pub(crate) trait ErasedHandler: Send + Sync + 'static {
     fn call_erased(
         &self,
         req: http::Request<h2::RecvStream>,
-    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send>>;
+    ) -> BoxFuture<'static, http::Response<Body>>;
+}
+
+#[cfg(not(feature = "send"))]
+pub(crate) trait ErasedHandler: 'static {
+    fn call_erased(
+        &self,
+        req: http::Request<h2::RecvStream>,
+    ) -> BoxFuture<'static, http::Response<Body>>;
 }
 
 pub(crate) fn erase_handler<H, T>(handler: H) -> Arc<dyn ErasedHandler>
@@ -39,7 +52,7 @@ where
     fn call_erased(
         &self,
         req: http::Request<h2::RecvStream>,
-    ) -> Pin<Box<dyn Future<Output = http::Response<Body>> + Send>> {
+    ) -> BoxFuture<'static, http::Response<Body>> {
         self.handler.call(req)
     }
 }

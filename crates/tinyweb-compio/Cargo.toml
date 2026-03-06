@@ -1,0 +1,11 @@
+[package]
+name = "tinyweb-compio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tinyweb-core = { path = "../tinyweb-core", default-features = false, features = [
+] }
+compio = { version = "0.18", features = ["runtime", "net", "io", "io-compat"] }
+futures-io = "0.3"
+socket2 = "0.6"
