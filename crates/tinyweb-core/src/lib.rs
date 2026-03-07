@@ -4,6 +4,7 @@ pub mod extract;
 pub mod handler;
 pub mod incoming;
 pub mod io;
+pub mod layer;
 pub mod maybe_send;
 pub mod response;
 pub mod router;

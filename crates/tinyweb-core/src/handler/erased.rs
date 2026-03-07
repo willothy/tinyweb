@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::{body::Body, handler::Handler, maybe_send::BoxFuture};
+use crate::{body::Body, maybe_send::BoxFuture, service::Service};
 
 #[cfg(feature = "send")]
-pub(crate) trait ErasedHandler: Send + Sync + 'static {
+pub(crate) trait ErasedService: Send + Sync + 'static {
     fn call_erased(
         &self,
         req: http::Request<h2::RecvStream>,
@@ -11,44 +11,49 @@ pub(crate) trait ErasedHandler: Send + Sync + 'static {
 }
 
 #[cfg(not(feature = "send"))]
-pub(crate) trait ErasedHandler: 'static {
+pub(crate) trait ErasedService: 'static {
     fn call_erased(
         &self,
         req: http::Request<h2::RecvStream>,
     ) -> BoxFuture<'static, http::Response<Body>>;
 }
 
-pub(crate) fn erase_handler<H, T>(handler: H) -> Arc<dyn ErasedHandler>
-where
-    T: 'static,
-    H: Handler<T>,
-{
-    Arc::new(Erase::new(handler))
+#[derive(Clone)]
+pub struct Route {
+    inner: Arc<dyn ErasedService>,
 }
 
-struct Erase<H, T> {
-    handler: H,
-    marker: std::marker::PhantomData<fn() -> T>,
-}
-
-impl<H, T> Erase<H, T> {
-    pub fn new(handler: H) -> Self {
+impl Route {
+    pub(crate) fn new<S: Service>(service: S) -> Self {
         Self {
-            handler,
-            marker: std::marker::PhantomData,
+            inner: Arc::new(Erased(service)),
         }
+    }
+
+    pub(crate) fn call(
+        &self,
+        req: http::Request<h2::RecvStream>,
+    ) -> BoxFuture<'static, http::Response<Body>> {
+        self.inner.call_erased(req)
     }
 }
 
-impl<H, T> ErasedHandler for Erase<H, T>
-where
-    T: 'static,
-    H: Handler<T>,
-{
+impl Service for Route {
+    fn call(
+        &self,
+        req: http::Request<h2::RecvStream>,
+    ) -> BoxFuture<'static, http::Response<Body>> {
+        self.inner.call_erased(req)
+    }
+}
+
+struct Erased<S>(S);
+
+impl<S: Service> ErasedService for Erased<S> {
     fn call_erased(
         &self,
         req: http::Request<h2::RecvStream>,
     ) -> BoxFuture<'static, http::Response<Body>> {
-        self.handler.call(req)
+        self.0.call(req)
     }
 }

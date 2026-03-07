@@ -2,16 +2,17 @@ use std::sync::Arc;
 
 use crate::{
     body::Body,
-    handler::{ErasedHandler, Handler, erase_handler},
+    handler::Route,
+    layer::Layer,
     maybe_send::BoxFuture,
-    service::Service,
+    service::{IntoService, Service},
 };
 
 struct RouteId(usize);
 
 struct RouterInner {
     routers: std::collections::HashMap<http::Method, matchit::Router<RouteId>>,
-    routes: Vec<Arc<dyn ErasedHandler>>,
+    routes: Vec<Route>,
 }
 
 #[derive(Clone)]
@@ -33,25 +34,20 @@ impl Router {
         Arc::get_mut(&mut self.inner).expect("Router is shared; cannot modify after cloning")
     }
 
-    pub fn route<H: Handler<T>, T: 'static>(
+    pub fn route<S: IntoService<T>, T>(
         self,
         method: http::Method,
         path: &str,
-        handler: H,
+        service: S,
     ) -> Self {
-        self.route_internal(method, path, erase_handler(handler))
+        self.route_erased(method, path, Route::new(service.into_service()))
     }
 
-    fn route_internal(
-        mut self,
-        method: http::Method,
-        path: &str,
-        handler: Arc<dyn ErasedHandler>,
-    ) -> Self {
+    fn route_erased(mut self, method: http::Method, path: &str, route: Route) -> Self {
         let inner = self.inner_mut();
         let id = RouteId(inner.routes.len());
 
-        inner.routes.push(handler);
+        inner.routes.push(route);
 
         let router = inner
             .routers
@@ -65,44 +61,58 @@ impl Router {
         self
     }
 
-    pub fn get<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::GET, path, handler)
+    pub fn layer<L>(mut self, layer: L) -> Self
+    where
+        L: Layer<Route> + Clone,
+        L::Service: Service,
+    {
+        let inner = self.inner_mut();
+        inner.routes = inner
+            .routes
+            .drain(..)
+            .map(|route| Route::new(layer.clone().layer(route)))
+            .collect();
+        self
     }
 
-    pub fn post<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::POST, path, handler)
+    pub fn get<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::GET, path, service)
     }
 
-    pub fn put<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::PUT, path, handler)
+    pub fn post<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::POST, path, service)
     }
 
-    pub fn delete<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::DELETE, path, handler)
+    pub fn put<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::PUT, path, service)
     }
 
-    pub fn patch<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::PATCH, path, handler)
+    pub fn delete<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::DELETE, path, service)
     }
 
-    pub fn head<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::HEAD, path, handler)
+    pub fn patch<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::PATCH, path, service)
     }
 
-    pub fn options<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::OPTIONS, path, handler)
+    pub fn head<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::HEAD, path, service)
     }
 
-    pub fn trace<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::TRACE, path, handler)
+    pub fn options<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::OPTIONS, path, service)
     }
 
-    pub fn connect<H: Handler<T>, T: 'static>(self, path: &str, handler: H) -> Self {
-        self.route(http::Method::CONNECT, path, handler)
+    pub fn trace<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::TRACE, path, service)
     }
 
-    pub fn any<H: Handler<T>, T: 'static>(mut self, path: &str, handler: H) -> Self {
-        let handler = erase_handler(handler);
+    pub fn connect<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
+        self.route(http::Method::CONNECT, path, service)
+    }
+
+    pub fn any<S: IntoService<T>, T>(mut self, path: &str, service: S) -> Self {
+        let route = Route::new(service.into_service());
         for method in &[
             http::Method::GET,
             http::Method::POST,
@@ -114,20 +124,20 @@ impl Router {
             http::Method::TRACE,
             http::Method::CONNECT,
         ] {
-            self = self.route_internal(method.clone(), path, Arc::clone(&handler));
+            self = self.route_erased(method.clone(), path, route.clone());
         }
         self
     }
 
-    pub fn many<H: Handler<T>, T: 'static>(
+    pub fn many<S: IntoService<T>, T>(
         mut self,
         methods: &[http::Method],
         path: &str,
-        handler: H,
+        service: S,
     ) -> Self {
-        let handler = erase_handler(handler);
+        let route = Route::new(service.into_service());
         for method in methods {
-            self = self.route_internal(method.clone(), path, Arc::clone(&handler));
+            self = self.route_erased(method.clone(), path, route.clone());
         }
         self
     }
@@ -147,7 +157,7 @@ impl RouterInner {
             let route_id = matched.value;
             let route = &self.routes[route_id.0];
 
-            return route.call_erased(req).await;
+            return route.call(req).await;
         }
 
         http::Response::builder()

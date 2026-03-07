@@ -14,6 +14,7 @@ single-threaded (compio) runtimes.
 - **Runtime agnostic** — tokio or compio via feature flags
 - **Transport agnostic** — TCP, Unix sockets, or any `AsyncRead + AsyncWrite` stream
 - **Optional `Send` bounds** — `send` feature for multi-threaded runtimes, omit for single-threaded
+- **Layered middleware** — composable `Layer<S: Service>` middleware on handlers, routes, or whole routers
 
 ## Crate Structure
 
@@ -125,27 +126,82 @@ let router = Router::new()
 `Router` implements `Service`, so it plugs directly into `serve` and
 `serve_connection`.
 
-## Custom Service
+## Middleware
 
-`Service` is the dispatch interface between the server and your application.
-Implement it directly for custom dispatch or middleware-like wrapping:
+Middleware is built on two traits: `Service` and `Layer`.
+
+`Service` is anything that takes a request and returns a response.
+`Layer<S: Service>` wraps a service to produce a new service.
+Handlers, routers, and middleware all compose through these same traits.
+
+### Per-handler middleware
+
+Apply a layer to a single handler before registering it:
+
+```rust
+let router = Router::new()
+    .get("/admin", admin_handler.layer(auth))
+    .get("/public", public_handler);
+```
+
+### Per-router middleware
+
+Apply a layer to all routes registered so far. Routes added after `.layer()`
+are not affected:
+
+```rust
+let router = Router::new()
+    .get("/admin/users", list_users)
+    .get("/admin/settings", settings)
+    .layer(require_admin)       // wraps both admin routes
+    .get("/", index);           // no admin middleware
+```
+
+### Whole-service wrapping
+
+Wrap an entire service (including a router) with `Service::layer()`:
+
+```rust
+let app = router.layer(logging);
+server::serve(incoming, app, runtime).await?;
+```
+
+### Writing middleware
+
+Implement `Layer` and `Service`:
 
 ```rust
 #[derive(Clone)]
-struct MyService;
+struct LogLayer;
 
-impl Service for MyService {
+impl<S: Service> Layer<S> for LogLayer {
+    type Service = LogService<S>;
+
+    fn layer(self, inner: S) -> Self::Service {
+        LogService { inner }
+    }
+}
+
+#[derive(Clone)]
+struct LogService<S> {
+    inner: S,
+}
+
+impl<S: Service> Service for LogService<S> {
     fn call(
         &self,
         req: http::Request<h2::RecvStream>,
     ) -> BoxFuture<'static, http::Response<Body>> {
+        let method = req.method().clone();
+        let path = req.uri().path().to_string();
+        let inner = self.inner.clone();
         Box::pin(async move {
-            // dispatch logic
+            let response = inner.call(req).await;
+            println!("{method} {path} -> {}", response.status());
+            response
         })
     }
 }
-
-server::serve(incoming, MyService, runtime).await?;
 ```
 
 ## Custom Transport

@@ -8,6 +8,7 @@ pub use tinyweb_core::{
     handler::Handler,
     incoming::Incoming,
     io::Io,
+    layer::Layer,
     response::IntoResponse,
     router::Router,
     runtime::Runtime,

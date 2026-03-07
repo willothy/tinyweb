@@ -2,14 +2,65 @@ mod erased;
 
 use crate::{
     body::Body,
+    layer::Layer,
     maybe_send::{BoxFuture, MaybeSend, MaybeSync},
     response::IntoResponse,
+    service::{IntoService, Service},
 };
 
-pub(crate) use erased::{ErasedHandler, erase_handler};
+pub use erased::Route;
 
 pub trait Handler<T>: MaybeSend + MaybeSync + 'static {
     fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>>;
+
+    fn layer<L>(self, layer: L) -> L::Service
+    where
+        Self: Sized + Clone,
+        T: 'static,
+        L: Layer<HandlerService<Self, T>>,
+    {
+        layer.layer(HandlerService::new(self))
+    }
+}
+
+impl<H: Handler<T> + Clone, T: 'static> IntoService<(H, T)> for H {
+    type Service = HandlerService<H, T>;
+    fn into_service(self) -> Self::Service {
+        HandlerService::new(self)
+    }
+}
+
+pub struct HandlerService<H, T> {
+    handler: H,
+    marker: std::marker::PhantomData<fn() -> T>,
+}
+
+impl<H: Clone, T> Clone for HandlerService<H, T> {
+    fn clone(&self) -> Self {
+        Self {
+            handler: self.handler.clone(),
+            marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<H, T> HandlerService<H, T> {
+    pub fn new(handler: H) -> Self {
+        Self {
+            handler,
+            marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<H, T> Service for HandlerService<H, T>
+where
+    T: 'static,
+    H: Handler<T> + Clone,
+{
+    fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>> {
+        self.handler.call(req)
+    }
 }
 
 impl<F, Fut, Res> Handler<()> for F
