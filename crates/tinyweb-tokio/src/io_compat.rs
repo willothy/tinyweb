@@ -1,6 +1,7 @@
 use std::task::{Context, Poll, ready};
 
 pin_project_lite::pin_project! {
+    /// Wrapper that adapts a tokio `AsyncRead + AsyncWrite` type to `futures_io`.
     pub struct TokioIoCompat<T> {
         #[pin]
         inner: T,
@@ -8,6 +9,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<T> TokioIoCompat<T> {
+    /// Wrap a tokio IO type.
     pub fn new(inner: T) -> Self {
         Self { inner }
     }

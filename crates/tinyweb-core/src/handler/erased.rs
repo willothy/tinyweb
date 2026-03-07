@@ -18,6 +18,7 @@ pub(crate) trait ErasedService: 'static {
     ) -> BoxFuture<'static, http::Response<Body>>;
 }
 
+/// A type-erased [`Service`], used internally by the router.
 #[derive(Clone)]
 pub struct Route {
     inner: Arc<dyn ErasedService>,

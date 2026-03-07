@@ -1,8 +1,11 @@
 use core::fmt;
 
+/// Error returned by [`serve_connection`](crate::error::ServeConnectionError).
 #[derive(Debug)]
 pub enum ServeConnectionError {
+    /// The h2 handshake failed.
     Handshake(h2::Error),
+    /// Accepting a new h2 stream failed.
     Accept(h2::Error),
 }
 
@@ -23,8 +26,10 @@ impl std::error::Error for ServeConnectionError {
     }
 }
 
+/// Error returned by [`serve`](crate::error::ServeError).
 #[derive(Debug)]
 pub enum ServeError<E> {
+    /// The transport-level accept failed.
     Accept(E),
 }
 
@@ -44,6 +49,7 @@ impl<E: std::error::Error + 'static> std::error::Error for ServeError<E> {
     }
 }
 
+/// Error type for streaming body chunks.
 #[derive(Debug)]
 pub struct BodyError(pub Box<dyn std::error::Error + Send + Sync>);
 

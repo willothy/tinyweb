@@ -1,5 +1,6 @@
 use crate::io_compat::TokioIoCompat;
 
+/// [`Incoming`](tinyweb_core::incoming::Incoming) implementation for tokio TCP listeners.
 pub struct TcpIncoming(pub tokio::net::TcpListener);
 
 impl tinyweb_core::incoming::Incoming for TcpIncoming {

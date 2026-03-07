@@ -1,6 +1,8 @@
 use crate::{body::Body, maybe_send::MaybeSend};
 
+/// Convert a type into an HTTP response.
 pub trait IntoResponse: MaybeSend + 'static {
+    /// Perform the conversion.
     fn into_response(self) -> http::Response<Body>;
 }
 

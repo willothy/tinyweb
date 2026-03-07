@@ -1,3 +1,4 @@
+/// [`Runtime`](tinyweb_core::runtime::Runtime) implementation backed by tokio.
 #[derive(Clone, Default)]
 pub struct TokioRuntime;
 

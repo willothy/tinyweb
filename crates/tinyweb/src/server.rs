@@ -10,6 +10,10 @@ use tinyweb_core::{
 
 use crate::io::TokioIo;
 
+/// Serve a single connection.
+///
+/// Performs the h2 handshake on the given IO stream and dispatches
+/// incoming requests to the service.
 pub async fn serve_connection<IO, S, R>(
     io: IO,
     service: S,
@@ -37,6 +41,7 @@ where
     Ok(())
 }
 
+/// Accept connections from an [`Incoming`] source and serve each one concurrently.
 pub async fn serve<I, S, R>(
     mut incoming: I,
     service: S,

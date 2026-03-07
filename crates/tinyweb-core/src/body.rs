@@ -1,8 +1,12 @@
 use crate::{error::BodyError, maybe_send::BoxStream};
 
+/// HTTP response body.
 pub enum Body {
+    /// No body.
     Empty,
+    /// A complete body buffered in memory.
     Data(bytes::Bytes),
+    /// A streaming body.
     Stream(BoxStream<Result<bytes::Bytes, BodyError>>),
 }
 

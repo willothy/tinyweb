@@ -14,7 +14,9 @@ pub struct Json<T>(pub T);
 
 /// Rejection type for the [`Json`] extractor.
 pub enum JsonRejection {
+    /// Failed to read the request body.
     BodyRead(h2::Error),
+    /// Failed to deserialize the request body as JSON.
     Deserialize(serde_json::Error),
 }
 

@@ -10,9 +10,15 @@ use crate::{
 
 pub use erased::Route;
 
+/// Trait for async handler functions.
+///
+/// Implemented automatically for async functions with up to 10 arguments
+/// via declarative macros.
 pub trait Handler<T>: MaybeSend + MaybeSync + 'static {
+    /// Call the handler with the given request.
     fn call(&self, req: http::Request<h2::RecvStream>) -> BoxFuture<'static, http::Response<Body>>;
 
+    /// Wrap this handler with a middleware layer.
     fn layer<L>(self, layer: L) -> L::Service
     where
         Self: Sized + Clone,
@@ -30,6 +36,7 @@ impl<H: Handler<T> + Clone, T: 'static> IntoService<(H, T)> for H {
     }
 }
 
+/// Wraps a [`Handler`] into a [`Service`].
 pub struct HandlerService<H, T> {
     handler: H,
     marker: std::marker::PhantomData<fn() -> T>,
@@ -45,6 +52,7 @@ impl<H: Clone, T> Clone for HandlerService<H, T> {
 }
 
 impl<H, T> HandlerService<H, T> {
+    /// Create a new `HandlerService` from a handler.
     pub fn new(handler: H) -> Self {
         Self {
             handler,

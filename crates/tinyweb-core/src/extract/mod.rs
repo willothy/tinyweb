@@ -12,17 +12,29 @@ use crate::{
     response::IntoResponse,
 };
 
+/// Extract data from request headers, URI, method, or extensions.
+///
+/// Types implementing this trait can appear as handler arguments
+/// in any position except the last (which may be a [`FromRequest`]).
 pub trait FromRequestParts: Sized {
+    /// The rejection type returned when extraction fails.
     type Rejection: IntoResponse;
 
+    /// Extract from the request parts.
     fn from_request_parts(
         parts: &mut http::request::Parts,
     ) -> BoxFuture<'static, Result<Self, Self::Rejection>>;
 }
 
+/// Extract data from the full request, consuming the body.
+///
+/// Types implementing this trait must be the last handler argument,
+/// since extraction consumes the request body.
 pub trait FromRequest: Sized {
+    /// The rejection type returned when extraction fails.
     type Rejection: IntoResponse;
 
+    /// Extract from the full request.
     fn from_request(
         req: http::Request<h2::RecvStream>,
     ) -> BoxFuture<'static, Result<Self, Self::Rejection>>;

@@ -1,5 +1,6 @@
 use compio::io::compat::AsyncStream;
 
+/// [`Incoming`](tinyweb_core::incoming::Incoming) implementation for compio TCP listeners.
 pub struct TcpIncoming(pub compio::net::TcpListener);
 
 impl tinyweb_core::incoming::Incoming for TcpIncoming {

@@ -1,3 +1,4 @@
+/// [`Runtime`](tinyweb_core::runtime::Runtime) implementation backed by compio.
 #[derive(Clone, Default)]
 pub struct CompioRuntime;
 

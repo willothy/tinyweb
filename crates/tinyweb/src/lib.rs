@@ -1,4 +1,9 @@
+//! A minimal, proc-macro-free HTTP/2 server framework.
+
+#![forbid(missing_docs)]
+
 mod io;
+/// Server loop for serving connections.
 pub mod server;
 
 pub use tinyweb_core::{

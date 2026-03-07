@@ -15,12 +15,17 @@ struct RouterInner {
     routes: Vec<Route>,
 }
 
+/// HTTP request router with path-based dispatch.
+///
+/// Routes are registered via builder methods and matched using
+/// [matchit](https://crates.io/crates/matchit) (`{param}` and `{*wildcard}` syntax).
 #[derive(Clone)]
 pub struct Router {
     inner: Arc<RouterInner>,
 }
 
 impl Router {
+    /// Create an empty router.
     pub fn new() -> Self {
         Self {
             inner: Arc::new(RouterInner {
@@ -34,6 +39,7 @@ impl Router {
         Arc::get_mut(&mut self.inner).expect("Router is shared; cannot modify after cloning")
     }
 
+    /// Register a route for the given HTTP method and path.
     pub fn route<S: IntoService<T>, T>(
         self,
         method: http::Method,
@@ -61,6 +67,7 @@ impl Router {
         self
     }
 
+    /// Apply a middleware layer to all routes registered so far.
     pub fn layer<L>(mut self, layer: L) -> Self
     where
         L: Layer<Route> + Clone,
@@ -75,42 +82,52 @@ impl Router {
         self
     }
 
+    /// Register a `GET` route.
     pub fn get<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::GET, path, service)
     }
 
+    /// Register a `POST` route.
     pub fn post<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::POST, path, service)
     }
 
+    /// Register a `PUT` route.
     pub fn put<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::PUT, path, service)
     }
 
+    /// Register a `DELETE` route.
     pub fn delete<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::DELETE, path, service)
     }
 
+    /// Register a `PATCH` route.
     pub fn patch<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::PATCH, path, service)
     }
 
+    /// Register a `HEAD` route.
     pub fn head<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::HEAD, path, service)
     }
 
+    /// Register an `OPTIONS` route.
     pub fn options<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::OPTIONS, path, service)
     }
 
+    /// Register a `TRACE` route.
     pub fn trace<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::TRACE, path, service)
     }
 
+    /// Register a `CONNECT` route.
     pub fn connect<S: IntoService<T>, T>(self, path: &str, service: S) -> Self {
         self.route(http::Method::CONNECT, path, service)
     }
 
+    /// Register a route for all HTTP methods.
     pub fn any<S: IntoService<T>, T>(mut self, path: &str, service: S) -> Self {
         let route = Route::new(service.into_service());
         for method in &[
@@ -129,6 +146,7 @@ impl Router {
         self
     }
 
+    /// Register a route for multiple HTTP methods.
     pub fn many<S: IntoService<T>, T>(
         mut self,
         methods: &[http::Method],
