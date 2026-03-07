@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tinyweb-core = { path = "../tinyweb-core", features = ["send"] }
-tokio = { version = "1", features = ["rt", "net"] }
 futures-io = "0.3"
 pin-project-lite = "0.2"
+tinyweb-core = { workspace = true, features = ["send"] } #unified
+tokio = { workspace = true, features = ["io-util", "macros", "rt-multi-thread"] } #unified

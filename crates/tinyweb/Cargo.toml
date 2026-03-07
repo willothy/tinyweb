@@ -9,19 +9,19 @@ tokio = ["dep:tinyweb-tokio", "send"]
 compio = ["dep:tinyweb-compio"]
 
 [dependencies]
-tinyweb-core = { path = "../tinyweb-core" }
-tinyweb-tokio = { path = "../tinyweb-tokio", optional = true }
-tinyweb-compio = { path = "../tinyweb-compio", optional = true }
-bytes = "1"
+bytes = { workspace = true } #unified
 futures-core = "0.3"
 futures-io = "0.3"
-h2 = { version = "0.4", features = ["stream"] }
-http = "1"
+h2 = { workspace = true } #unified
+http = { workspace = true } #unified
 pin-project-lite = "0.2"
-tokio = { version = "1", features = ["io-util"] }
+tinyweb-compio = { workspace = true, optional = true } #unified
+tinyweb-core = { workspace = true } #unified
+tinyweb-tokio = { workspace = true, optional = true } #unified
+tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread"] } #unified
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+tokio = { workspace = true, features = ["io-util", "rt"] } #unified
 
 [[example]]
 name = "hello"

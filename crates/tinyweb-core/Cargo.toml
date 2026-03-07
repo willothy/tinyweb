@@ -7,11 +7,11 @@ edition = "2024"
 send = []
 
 [dependencies]
-bytes = "1"
+bytes = { workspace = true } #unified
 futures-core = "0.3"
 futures-io = "0.3"
-h2 = { version = "0.4", features = ["stream"] }
-http = "1"
+h2 = { workspace = true } #unified
+http = { workspace = true } #unified
 matchit = "0.9"
 serde = "1"
 serde_json = "1"
