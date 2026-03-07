@@ -3,7 +3,7 @@ mod json;
 mod parts;
 
 pub use self::{
-    body::BodyReadError,
+    body::{BodyReadError, BodyStream},
     json::{Json, JsonRejection},
 };
 

@@ -5,11 +5,26 @@ use crate::{
     response::IntoResponse,
 };
 
+/// JSON extractor and responder.
+///
+/// As an extractor, deserializes the request body from JSON.
+/// As a responder, serializes the inner value to a JSON response
+/// with `Content-Type: application/json`.
 pub struct Json<T>(pub T);
 
+/// Rejection type for the [`Json`] extractor.
 pub enum JsonRejection {
     BodyRead(h2::Error),
     Deserialize(serde_json::Error),
+}
+
+impl std::fmt::Debug for JsonRejection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BodyRead(e) => f.debug_tuple("BodyRead").field(e).finish(),
+            Self::Deserialize(e) => f.debug_tuple("Deserialize").field(e).finish(),
+        }
+    }
 }
 
 impl std::fmt::Display for JsonRejection {
@@ -17,6 +32,15 @@ impl std::fmt::Display for JsonRejection {
         match self {
             Self::BodyRead(e) => write!(f, "failed to read request body: {e}"),
             Self::Deserialize(e) => write!(f, "invalid JSON: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for JsonRejection {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::BodyRead(e) => Some(e),
+            Self::Deserialize(e) => Some(e),
         }
     }
 }
@@ -29,6 +53,7 @@ impl IntoResponse for JsonRejection {
         };
         http::Response::builder()
             .status(status)
+            .header(http::header::CONTENT_TYPE, "text/plain")
             .body(Body::Data(self.to_string().into()))
             .expect("valid response")
     }
@@ -60,6 +85,7 @@ impl<T: serde::Serialize + MaybeSend + 'static> IntoResponse for Json<T> {
                 .expect("valid response"),
             Err(e) => http::Response::builder()
                 .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+                .header(http::header::CONTENT_TYPE, "text/plain")
                 .body(Body::Data(e.to_string().into()))
                 .expect("valid response"),
         }

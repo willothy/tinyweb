@@ -115,6 +115,7 @@ body. `FromRequest` extractors consume the body and must be the last argument.
 | `http::Uri` | `FromRequestParts` | Request URI |
 | `http::HeaderMap` | `FromRequestParts` | Request headers |
 | `bytes::Bytes` | `FromRequest` | Raw body bytes |
+| `BodyStream` | `FromRequest` | Streaming body (implements `Stream<Item = Result<Bytes, h2::Error>>`) |
 | `Json<T>` | `FromRequest` | Deserialize JSON body (`T: DeserializeOwned`) |
 
 ```rust
