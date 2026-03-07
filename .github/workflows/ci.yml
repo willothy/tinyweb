@@ -16,15 +16,17 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: default
+            args: ""
           - name: tokio
-            features: --features tokio
+            args: -p tinyweb --features tokio
           - name: compio
-            features: --features compio
+            args: -p tinyweb --features compio
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace ${{ matrix.features }}
+      - run: cargo check ${{ matrix.args }}
 
   test:
     name: Test
@@ -32,16 +34,18 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: default
+            args: ""
           - name: tokio
-            features: --features tokio
+            args: -p tinyweb --features tokio
           - name: compio
-            features: --features compio
+            args: -p tinyweb --features compio
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@nextest
-      - run: cargo nextest run --workspace ${{ matrix.features }}
+      - run: cargo nextest run ${{ matrix.args }}
 
   fmt:
     name: Format
@@ -59,14 +63,16 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: default
+            args: ""
           - name: tokio
-            features: --features tokio
+            args: -p tinyweb --features tokio
           - name: compio
-            features: --features compio
+            args: -p tinyweb --features compio
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.87.0"
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace ${{ matrix.features }}
+      - run: cargo check ${{ matrix.args }}
