@@ -1,3 +1,12 @@
+mod body;
+mod json;
+mod parts;
+
+pub use self::{
+    body::BodyReadError,
+    json::{Json, JsonRejection},
+};
+
 use crate::{
     maybe_send::{BoxFuture, MaybeSend},
     response::IntoResponse,
@@ -7,7 +16,7 @@ pub trait FromRequestParts: Sized {
     type Rejection: IntoResponse;
 
     fn from_request_parts(
-        parts: &http::request::Parts,
+        parts: &mut http::request::Parts,
     ) -> BoxFuture<'static, Result<Self, Self::Rejection>>;
 }
 
@@ -29,8 +38,20 @@ where
         req: http::Request<h2::RecvStream>,
     ) -> BoxFuture<'static, Result<Self, Self::Rejection>> {
         Box::pin(async move {
-            let (parts, _body) = req.into_parts();
-            T::from_request_parts(&parts).await
+            let (mut parts, _body) = req.into_parts();
+            T::from_request_parts(&mut parts).await
         })
     }
+}
+
+pub(crate) async fn collect_body(
+    mut body: h2::RecvStream,
+) -> Result<bytes::Bytes, h2::Error> {
+    let mut data = bytes::BytesMut::new();
+    while let Some(chunk) = body.data().await {
+        let chunk = chunk?;
+        body.flow_control().release_capacity(chunk.len())?;
+        data.extend_from_slice(&chunk);
+    }
+    Ok(data.freeze())
 }

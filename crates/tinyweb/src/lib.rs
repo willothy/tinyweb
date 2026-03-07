@@ -4,7 +4,7 @@ pub mod server;
 pub use tinyweb_core::{
     body::Body,
     error::{BodyError, ServeConnectionError, ServeError},
-    extract::{FromRequest, FromRequestParts},
+    extract::{FromRequest, FromRequestParts, Json},
     handler::Handler,
     incoming::Incoming,
     io::Io,

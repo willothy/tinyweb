@@ -90,24 +90,53 @@ server::serve_connection(TokioIoCompat::new(stream), router, TokioRuntime).await
 ## Handlers
 
 Any async function is a handler. The return type must implement `IntoResponse`.
+Arguments are extracted from the request via `FromRequestParts` (headers, URI,
+method) or `FromRequest` (consumes the body — must be the last argument). Up to
+10 extractor arguments are supported.
 
 ```rust
 async fn index() -> &'static str {
     "hello"
 }
 
-async fn json_status() -> http::Response<Body> {
-    http::Response::builder()
-        .status(200)
-        .header("content-type", "application/json")
-        .body(Body::Data(r#"{"ok":true}"#.into()))
-        .unwrap()
+async fn echo(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+    Json(body)
 }
 ```
 
-Handler arguments are extracted from the request via `FromRequestParts`
-(headers, URI, method) or `FromRequest` (consumes the body — must be the last
-argument). Up to 10 extractor arguments are supported.
+## Extractors
+
+`FromRequestParts` extractors pull data from the request without consuming the
+body. `FromRequest` extractors consume the body and must be the last argument.
+
+| Extractor | Trait | Description |
+|---|---|---|
+| `http::Method` | `FromRequestParts` | HTTP method |
+| `http::Uri` | `FromRequestParts` | Request URI |
+| `http::HeaderMap` | `FromRequestParts` | Request headers |
+| `bytes::Bytes` | `FromRequest` | Raw body bytes |
+| `Json<T>` | `FromRequest` | Deserialize JSON body (`T: DeserializeOwned`) |
+
+```rust
+async fn handler(method: http::Method, uri: http::Uri, body: bytes::Bytes) -> &'static str {
+    "ok"
+}
+```
+
+## Responses
+
+Any type implementing `IntoResponse` can be returned from a handler.
+
+| Type | Status | Content-Type |
+|---|---|---|
+| `&'static str` | 200 | `text/plain` |
+| `String` | 200 | `text/plain; charset=utf-8` |
+| `bytes::Bytes` | 200 | `application/octet-stream` |
+| `Json<T>` | 200 | `application/json` (`T: Serialize`) |
+| `http::StatusCode` | given | — |
+| `()` | 200 | — |
+| `Result<T, E>` | — | `T` on `Ok`, `E` on `Err` |
+| `http::Response<Body>` | — | full control |
 
 ## Router
 
