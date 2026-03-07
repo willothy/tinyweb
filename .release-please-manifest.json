@@ -1,0 +1,6 @@
+{
+  "crates/tinyweb-core": "0.1.0",
+  "crates/tinyweb-tokio": "0.1.0",
+  "crates/tinyweb-compio": "0.1.0",
+  "crates/tinyweb": "0.1.0"
+}

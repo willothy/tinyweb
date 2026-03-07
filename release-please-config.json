@@ -1,0 +1,20 @@
+{
+  "packages": {
+    "crates/tinyweb-core": {
+      "release-type": "rust",
+      "component": "tinyweb-core"
+    },
+    "crates/tinyweb-tokio": {
+      "release-type": "rust",
+      "component": "tinyweb-tokio"
+    },
+    "crates/tinyweb-compio": {
+      "release-type": "rust",
+      "component": "tinyweb-compio"
+    },
+    "crates/tinyweb": {
+      "release-type": "rust",
+      "component": "tinyweb"
+    }
+  }
+}
